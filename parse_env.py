@@ -1,26 +1,63 @@
 #!/usr/bin/env python
 import os
 import sys
-import string
 
 
-# TODO: parsing (find out if [] used in env-files)
-# TODO: platform option
-# TODO: comparators
-# TODO: many more options
 # TODO: custom flags (maybe ask for it if not given, but can also give via cmd line)
+# TODO: custom flags defaults
 # TODO: change input and output
-# TODO: sequrity question if want to overwrite existing file
+# TODO: security question if want to overwrite existing file
 # TODO: Readme
-# TODO: Repo name and description, file-name
+# TODO: Repo name, description and topics, file-name
 # TODO: License
+# TODO: Handle if can't read input-file
+# TODO: Invoke conda afterwards (and flag to disable)
+# TODO: Example Files
+# TODO: Specify Python version
+# TODO: Find file in parent dir if not in own (so if included as submodule)
+# TODO: be able to handle == and != w/o spaces
 
 
-def evaluate_bracket(bracket_text):
-    bracket_text = bracket_text.translate({ord(c): None for c in string.whitespace})
-    if bracket_text.startswith('platform=='):
-        return bracket_text[10:] == sys.platform
-    return None
+def evaluate_fields(fields):
+    if len(fields) == 0:
+        raise ValueError
+
+    if 'or' in fields:
+        idx = fields.index('or')
+        left = evaluate_fields(fields[:idx])
+        right = evaluate_fields(fields[idx+1:])
+        return left or right
+    if 'and' in fields:
+        idx = fields.index('and')
+        left = evaluate_fields(fields[:idx])
+        right = evaluate_fields(fields[idx+1:])
+        return left and right
+    if fields[0] == 'not':
+        return not evaluate_fields(fields[1:])
+
+    if len(fields) == 1:
+        print('evaluate boolean', fields[0], 'as True')
+        return True
+
+    if len(fields) == 3:
+        if fields[1] in ['==', '!=', 'startswith', 'endswith', 'contains']:
+            if fields[0] == 'platform':
+                left = sys.platform
+            else:
+                print('evaluate string', fields[0], 'as string_content')
+                left = 'string_content'
+            if fields[1] == '==':
+                return left == fields[2]
+            elif fields[1] == '!=':
+                return left != fields[2]
+            elif fields[1] == 'startswith':
+                return left.startswith(fields[2])
+            elif fields[1] == 'endswith':
+                return left.endswith(fields[2])
+            elif fields[1] == 'contains':
+                return fields[2] in left
+
+    raise ValueError
 
 
 def main():
@@ -35,11 +72,14 @@ def main():
             bracket_end = line.find(']')
             if bracket_start != -1 and bracket_end != -1:
                 bracket_text = line[bracket_start+1:bracket_end]
+                fields = bracket_text.split()
                 line = line[:bracket_start] + line[bracket_end+1:]
-                print_line = evaluate_bracket(bracket_text)
-                if print_line is None:
+                try:
+                    print_line = evaluate_fields(fields)
+                except ValueError:
                     sys.stderr.write('Error: Could not parse bracket in line %d\n' % (cnt+1))
                     sys.exit(1)
+                print(print_line)
                 if not print_line:
                     continue
             file_buffer.append(line)
