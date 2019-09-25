@@ -19,7 +19,7 @@ import argparse
 # TODO: add comments / doc-strings / ...
 
 
-class FieldParser:
+class ConditionParser:
 
     def __init__(self):
         self._flags = []
@@ -30,22 +30,26 @@ class FieldParser:
         for attr, val in var_list:
             self._vars[attr] = val
 
-    def evaluate_fields(self, fields):
+    def eval_condition(self, condition):
+        fields = condition.split()
+        return self._evaluate_fields(fields)
+
+    def _evaluate_fields(self, fields):
         if len(fields) == 0:
             raise ValueError('Syntax Error')
 
         if 'or' in fields:
             idx = fields.index('or')
-            left = self.evaluate_fields(fields[:idx])
-            right = self.evaluate_fields(fields[idx+1:])
+            left = self._evaluate_fields(fields[:idx])
+            right = self._evaluate_fields(fields[idx + 1:])
             return left or right
         if 'and' in fields:
             idx = fields.index('and')
-            left = self.evaluate_fields(fields[:idx])
-            right = self.evaluate_fields(fields[idx+1:])
+            left = self._evaluate_fields(fields[:idx])
+            right = self._evaluate_fields(fields[idx + 1:])
             return left and right
         if fields[0] == 'not':
-            return not self.evaluate_fields(fields[1:])
+            return not self._evaluate_fields(fields[1:])
 
         if len(fields) == 1:
             return fields[0] in self._flags
@@ -85,8 +89,8 @@ def main():
                            help='define custom variable for parsing')
     args = argparser.parse_args()
 
-    fieldparser = FieldParser()
-    fieldparser.read_argparse(args.flag, args.variable)
+    conditionparser = ConditionParser()
+    conditionparser.read_argparse(args.flag, args.variable)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     meta_file = os.path.join(dir_path, args.input)
@@ -98,17 +102,14 @@ def main():
             bracket_start = line.find('[')
             bracket_end = line.find(']')
             if bracket_start != -1 and bracket_end != -1:
-                bracket_text = line[bracket_start+1:bracket_end]
-                fields = bracket_text.split()
+                condition = line[bracket_start+1:bracket_end]
                 line = line[:bracket_start] + line[bracket_end+1:]
                 try:
-                    print_line = fieldparser.evaluate_fields(fields)
+                    if not conditionparser.eval_condition(condition):
+                        continue
                 except ValueError as e:
                     sys.stderr.write('Line %d: %s\n' % (cnt+1, e))
                     sys.exit(1)
-
-                if not print_line:
-                    continue
 
             file_buffer.append(line)
 
