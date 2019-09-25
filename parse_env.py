@@ -4,7 +4,6 @@ import sys
 import argparse
 
 
-# TODO: custom flags defaults (e.g. name%def_value)
 # TODO: security question if want to overwrite existing file
 # TODO: Readme
 # TODO: Repo name, description and topics, file-name
@@ -14,6 +13,7 @@ import argparse
 # TODO: Example Files
 # TODO: Specify Python version
 # TODO: Find file in parent dir if not in own (so if included as submodule)
+# TODO: infile-path not nec. relative to scrip, outfile-path dep on infile-path (?)
 # TODO: be able to handle == and != w/o spaces
 # TODO: block sections
 # TODO: add comments / doc-strings / ...
@@ -32,37 +32,28 @@ class ConditionParser:
 
     def eval_condition(self, condition):
         fields = condition.split()
-        return self._evaluate_fields(fields)
+        return self._eval_fields(fields)
 
-    def _evaluate_fields(self, fields):
-        if len(fields) == 0:
-            raise ValueError('Syntax Error')
-
+    def _eval_fields(self, fields):
         if 'or' in fields:
             idx = fields.index('or')
-            left = self._evaluate_fields(fields[:idx])
-            right = self._evaluate_fields(fields[idx + 1:])
+            left = self._eval_fields(fields[:idx])
+            right = self._eval_fields(fields[idx + 1:])
             return left or right
         if 'and' in fields:
             idx = fields.index('and')
-            left = self._evaluate_fields(fields[:idx])
-            right = self._evaluate_fields(fields[idx + 1:])
+            left = self._eval_fields(fields[:idx])
+            right = self._eval_fields(fields[idx + 1:])
             return left and right
-        if fields[0] == 'not':
-            return not self._evaluate_fields(fields[1:])
+        if len(fields) > 0 and fields[0] == 'not':
+            return not self._eval_fields(fields[1:])
 
         if len(fields) == 1:
-            return fields[0] in self._flags
+            return self._eval_flag(fields[0])
 
         if len(fields) == 3:
             if fields[1] in ['==', '!=', 'startswith', 'endswith', 'contains']:
-                if fields[0] == 'platform':
-                    left = sys.platform
-                else:
-                    if not fields[0] in self._vars:
-                        raise ValueError('Custom variable \'%s\' not defined' % fields[0])
-                    left = self._vars[fields[0]]
-
+                left = self._eval_expression(fields[0])
                 if fields[1] == '==':
                     return left == fields[2]
                 elif fields[1] == '!=':
@@ -75,6 +66,28 @@ class ConditionParser:
                     return fields[2] in left
 
         raise ValueError('Syntax Error')
+
+    def _eval_flag(self, name):
+        if '%' in name:
+            raise ValueError('Flags can\'t have default values')
+        else:
+            return name in self._flags
+
+    def _eval_expression(self, name):
+        if name == 'platform':
+            return sys.platform
+        else:
+            return self._eval_var(name)
+
+    def _eval_var(self, name):
+        name_cleaned = name.split('%')[0]
+        if name_cleaned not in self._vars:
+            if '%' in name:
+                return name.split('%')[1]
+            else:
+                raise ValueError('Custom variable \'%s\' not defined' % name)
+        else:
+            return self._vars[name_cleaned]
 
 
 def main():
