@@ -4,19 +4,19 @@ import sys
 import argparse
 
 
-# TODO: security question if want to overwrite existing file
-# TODO: Readme
-# TODO: Repo name, description and topics, file-name
-# TODO: License
 # TODO: Handle if can't read input-file
 # TODO: Invoke conda afterwards (and flag to disable)
-# TODO: Example Files
-# TODO: Specify Python version
 # TODO: Find file in parent dir if not in own (so if included as submodule)
 # TODO: infile-path not nec. relative to scrip, outfile-path dep on infile-path (?)
 # TODO: be able to handle == and != w/o spaces
 # TODO: block sections
+
+# TODO: Example Files
+# TODO: Specify Python version
 # TODO: add comments / doc-strings / ...
+# TODO: Readme
+# TODO: Repo name, description and topics, file-name
+# TODO: License
 
 
 class ConditionParser:
@@ -100,6 +100,8 @@ def main():
                            help='set custom flag for parsing')
     argparser.add_argument('-v', '--variable', type=str, nargs=2, action='append', default=[],
                            help='define custom variable for parsing')
+    argparser.add_argument('-q', '--quiet', action='store_true',
+                           help='quietly overwrite output if already exists')
     args = argparser.parse_args()
 
     conditionparser = ConditionParser()
@@ -108,6 +110,18 @@ def main():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     meta_file = os.path.join(dir_path, args.input)
     env_file = os.path.join(dir_path, args.output)
+
+    if os.path.exists(env_file) and not args.quiet:
+        input_query = 'Output file already exists, overwrite? [Y]'
+        while True:
+            answer = input(input_query)
+            if answer in ['', 'Y', 'y', 'yes', 'Yes', 'YES']:
+                print('YEEES')
+                break
+            elif answer in ['N', 'n', 'no', 'No', 'NO']:
+                print('NOOOO')
+                return
+            input_query = 'Invalid answer, please answer yes or no: [Y]'
 
     file_buffer = []
     with open(meta_file, 'r') as file_in:
