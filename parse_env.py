@@ -4,10 +4,7 @@ import sys
 import argparse
 
 
-# TODO: Handle if can't read input-file
 # TODO: Invoke conda afterwards (and flag to disable)
-# TODO: Find file in parent dir if not in own (so if included as submodule)
-# TODO: infile-path not nec. relative to scrip, outfile-path dep on infile-path (?)
 # TODO: be able to handle == and != w/o spaces
 # TODO: block sections
 
@@ -92,9 +89,9 @@ class ConditionParser:
 
 def main():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-i', '--input', default='environment.yml.meta',
+    argparser.add_argument('-i', '--input',
                            help='specify meta environment input file')
-    argparser.add_argument('-o', '--output', default='environment.yml',
+    argparser.add_argument('-o', '--output',
                            help='specify environment output file')
     argparser.add_argument('-f', '--flag', type=str, action='append', default=[],
                            help='set custom flag for parsing')
@@ -108,20 +105,35 @@ def main():
     conditionparser.read_argparse(args.flag, args.variable)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    meta_file = os.path.join(dir_path, args.input)
-    env_file = os.path.join(dir_path, args.output)
+
+    meta_file_name = 'environment.yml.meta'
+    if args.input is None:
+        meta_file = os.path.join(dir_path, meta_file_name)
+        if not os.path.exists(meta_file):
+            meta_file = os.path.join(dir_path, '..', meta_file_name)
+    else:
+        meta_file = args.input
+    if not os.path.exists(meta_file):
+        sys.stderr.write('Error: Could not find input file')
+        sys.exit(1)
+
+    if args.output is None:
+        if meta_file.endswith('.meta'):
+            env_file = meta_file[:-5]
+        else:
+            env_file = meta_file + '_out'
+    else:
+        env_file = args.output
 
     if os.path.exists(env_file) and not args.quiet:
-        input_query = 'Output file already exists, overwrite? [Y]'
+        input_query = 'Output file %s already exists, overwrite? [Yn]' % env_file
         while True:
             answer = input(input_query)
             if answer in ['', 'Y', 'y', 'yes', 'Yes', 'YES']:
-                print('YEEES')
                 break
             elif answer in ['N', 'n', 'no', 'No', 'NO']:
-                print('NOOOO')
                 return
-            input_query = 'Invalid answer, please answer yes or no: [Y]'
+            input_query = 'Invalid answer, please answer yes or no: [Yn]'
 
     file_buffer = []
     with open(meta_file, 'r') as file_in:
@@ -135,7 +147,7 @@ def main():
                     if not conditionparser.eval_condition(condition):
                         continue
                 except ValueError as e:
-                    sys.stderr.write('Line %d: %s\n' % (cnt+1, e))
+                    sys.stderr.write('Error in line %d: %s\n' % (cnt+1, e))
                     sys.exit(1)
 
             file_buffer.append(line)
@@ -143,6 +155,8 @@ def main():
     with open(env_file, 'w') as file_out:
         for line in file_buffer:
             file_out.write(line)
+
+    sys.stdout.write('Created %s successfully\n' % env_file)
 
 
 if __name__ == '__main__':
