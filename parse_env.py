@@ -4,7 +4,6 @@ import sys
 import argparse
 
 
-# TODO: be able to handle == and != w/o spaces
 # TODO: block sections
 
 # TODO: Example Files
@@ -27,7 +26,8 @@ class ConditionParser:
             self._vars[attr] = val
 
     def eval_condition(self, condition):
-        fields = condition.split()
+        cond_ = condition.replace('==', ' == ').replace('!=', ' != ')
+        fields = cond_.split()
         return self._eval_fields(fields)
 
     def _eval_fields(self, fields):
