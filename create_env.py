@@ -142,7 +142,8 @@ class MetaFileParser:
             if '%' in name:
                 return name.split('%')[1]
             else:
-                raise ValueError('Custom variable \'%s\' not defined' % name)
+                raise ValueError('Custom variable \'%s\' neither set with command line options '
+                                 'nor given default value' % name)
         else:
             return self._vars[name_cleaned]
 

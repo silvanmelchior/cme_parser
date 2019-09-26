@@ -67,6 +67,11 @@ In general, if not specified differently with a `--output` argument, the parser 
 If *.meta* is not present, it will append *_out* to the filename instead.
 In all cases, the parser will in the end invoke conda to create the environment specified by the output file. 
 
+## Requirements
+
+CME Parser is written in pure Python and does only need standard library packages.
+It can be executed e.g. in the conda default environment (called *base*) and was tested with Python 2.7 and 3.6 / 3.7.
+
 ## Syntax
 
 If a line contains `[condition]`, the parser only outputs it if the condition is met (removing the condition itself).
