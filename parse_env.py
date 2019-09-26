@@ -4,7 +4,8 @@ import sys
 import argparse
 
 
-# TODO: block sections
+# TODO: block sections (recognice ill bracketing)
+# TODO: blocks more flexible (e.g. close on same line multiple of them etc..., maybe change syntax
 
 # TODO: Example Files
 # TODO: Specify Python version
@@ -14,18 +15,66 @@ import argparse
 # TODO: License
 
 
-class ConditionParser:
+class MetaFileParser:
 
     def __init__(self):
         self._flags = []
         self._vars = {}
+        self.file_buffer = None
+        self.line_cnt = None
 
     def read_argparse(self, flags_list, var_list):
         self._flags = flags_list
         for attr, val in var_list:
             self._vars[attr] = val
 
-    def eval_condition(self, condition):
+    def parse_file(self, file_in):
+        self.file_buffer = []
+        self.line_cnt = 0
+        try:
+            self._parse_file(file_in, True)
+        except ValueError as e:
+            sys.stderr.write('Error in line %d: %s\n' % (self.line_cnt, e))
+            sys.exit(1)
+
+    def _parse_file(self, file_in, do_print):
+        while True:
+            try:
+                line = next(file_in)
+                self.line_cnt += 1
+                dbl_bracket_start = line.find('[[')
+                dbl_bracket_end = line.find(']]')
+                if dbl_bracket_start != -1:
+                    condition = line[dbl_bracket_start + 1:]
+                    if do_print:
+                        do_print_ = self._eval_condition(condition)
+                    else:
+                        do_print_ = False
+                    self._parse_file(file_in, do_print_)
+                elif dbl_bracket_end != -1:
+                    return
+                else:
+                    if do_print:
+                        self._parse_line(line)
+            except StopIteration:
+                break
+
+    def _parse_line(self, line):
+        bracket_start = line.find('[')
+        bracket_end = line.find(']')
+        if bracket_start != -1 and bracket_end != -1:
+            condition = line[bracket_start+1:bracket_end]
+            line = line[:bracket_start] + line[bracket_end+1:]
+            if not self._eval_condition(condition):
+                return
+
+        self.file_buffer.append(line)
+
+    def write_result(self, file_out):
+        for line in self.file_buffer:
+            file_out.write(line)
+
+    def _eval_condition(self, condition):
         cond_ = condition.replace('==', ' == ').replace('!=', ' != ')
         fields = cond_.split()
         return self._eval_fields(fields)
@@ -102,8 +151,8 @@ def main():
                            help='do not invoke conda afterwards')
     args = argparser.parse_args()
 
-    conditionparser = ConditionParser()
-    conditionparser.read_argparse(args.flag, args.variable)
+    metafileparser = MetaFileParser()
+    metafileparser.read_argparse(args.flag, args.variable)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -136,26 +185,11 @@ def main():
                 return
             input_query = 'Invalid answer, please answer yes or no ([y]/n):'
 
-    file_buffer = []
     with open(meta_file, 'r') as file_in:
-        for cnt, line in enumerate(file_in):
-            bracket_start = line.find('[')
-            bracket_end = line.find(']')
-            if bracket_start != -1 and bracket_end != -1:
-                condition = line[bracket_start+1:bracket_end]
-                line = line[:bracket_start] + line[bracket_end+1:]
-                try:
-                    if not conditionparser.eval_condition(condition):
-                        continue
-                except ValueError as e:
-                    sys.stderr.write('Error in line %d: %s\n' % (cnt+1, e))
-                    sys.exit(1)
-
-            file_buffer.append(line)
+        metafileparser.parse_file(file_in)
 
     with open(env_file, 'w') as file_out:
-        for line in file_buffer:
-            file_out.write(line)
+        metafileparser.write_result(file_out)
 
     sys.stdout.write('Created %s successfully\n' % env_file)
 
