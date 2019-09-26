@@ -3,13 +3,6 @@ import os
 import sys
 import argparse
 
-# TODO: Example Files
-# TODO: Specify Python version
-# TODO: add comments / doc-strings / ...
-# TODO: Readme
-# TODO: Repo name, description and topics, file-name
-# TODO: License
-
 
 class MetaFileParser:
 
@@ -135,6 +128,7 @@ class MetaFileParser:
 
 
 def main():
+    # Read command line arguments
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-i', '--input',
                            help='specify meta environment input file')
@@ -152,11 +146,12 @@ def main():
                            help='do not add auto-generated comment to output')
     args = argparser.parse_args()
 
+    # Create parser instance
     metafileparser = MetaFileParser()
     metafileparser.read_argparse(args.flag, args.variable)
 
+    # Get input file
     dir_path = os.path.dirname(os.path.realpath(__file__))
-
     if args.input is None:
         meta_file_name = 'environment.yml.meta'
         meta_file = os.path.join(dir_path, meta_file_name)
@@ -165,10 +160,12 @@ def main():
     else:
         meta_file_name = os.path.basename(args.input)
         meta_file = args.input
+
     if not os.path.exists(meta_file):
         sys.stderr.write('Error: Could not find input file')
         sys.exit(1)
 
+    # Get output file
     if args.output is None:
         if meta_file.endswith('.meta'):
             env_file = meta_file[:-5]
@@ -187,6 +184,7 @@ def main():
                 return
             input_query = 'Invalid answer, please answer yes or no ([y]/n):'
 
+    # Read input
     with open(meta_file, 'r') as file_in:
         try:
             metafileparser.parse_file(file_in)
@@ -194,6 +192,7 @@ def main():
             sys.stderr.write('Error: %s\n' % e)
             sys.exit(1)
 
+    # Write output
     with open(env_file, 'w') as file_out:
         if not args.no_comment:
             file_out.write('# This file was auto-generated from %s\n' % meta_file_name)
@@ -201,6 +200,7 @@ def main():
 
     sys.stdout.write('Created %s successfully\n' % env_file)
 
+    # Invoke conda
     if not args.parse_only:
         os.system('conda env create -f %s' % env_file)
 
