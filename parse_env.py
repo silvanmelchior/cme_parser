@@ -4,7 +4,6 @@ import sys
 import argparse
 
 
-# TODO: Invoke conda afterwards (and flag to disable)
 # TODO: be able to handle == and != w/o spaces
 # TODO: block sections
 
@@ -99,6 +98,8 @@ def main():
                            help='define custom variable for parsing')
     argparser.add_argument('-q', '--quiet', action='store_true',
                            help='quietly overwrite output if already exists')
+    argparser.add_argument('-p', '--parse-only', action='store_true',
+                           help='do not invoke conda afterwards')
     args = argparser.parse_args()
 
     conditionparser = ConditionParser()
@@ -126,14 +127,14 @@ def main():
         env_file = args.output
 
     if os.path.exists(env_file) and not args.quiet:
-        input_query = 'Output file %s already exists, overwrite? [Yn]' % env_file
+        input_query = 'Output file %s already exists, overwrite ([y]/n)?' % env_file
         while True:
             answer = input(input_query)
             if answer in ['', 'Y', 'y', 'yes', 'Yes', 'YES']:
                 break
             elif answer in ['N', 'n', 'no', 'No', 'NO']:
                 return
-            input_query = 'Invalid answer, please answer yes or no: [Yn]'
+            input_query = 'Invalid answer, please answer yes or no ([y]/n):'
 
     file_buffer = []
     with open(meta_file, 'r') as file_in:
@@ -157,6 +158,9 @@ def main():
             file_out.write(line)
 
     sys.stdout.write('Created %s successfully\n' % env_file)
+
+    if not args.parse_only:
+        os.system('conda env create -f %s' % env_file)
 
 
 if __name__ == '__main__':
