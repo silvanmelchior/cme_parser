@@ -3,8 +3,6 @@ import os
 import sys
 import argparse
 
-# TODO: blocks more flexible (e.g. close on same line multiple of them etc..., maybe change syntax
-
 # TODO: Example Files
 # TODO: Specify Python version
 # TODO: add comments / doc-strings / ...
@@ -71,10 +69,6 @@ class MetaFileParser:
 
         self.file_buffer.append(line)
 
-    def write_result(self, file_out):
-        for line in self.file_buffer:
-            file_out.write(line)
-
     def _eval_condition(self, condition):
         cond_ = condition.replace('==', ' == ').replace('!=', ' != ')
         fields = cond_.split()
@@ -135,6 +129,10 @@ class MetaFileParser:
         else:
             return self._vars[name_cleaned]
 
+    def write_result(self, file_out):
+        for line in self.file_buffer:
+            file_out.write(line)
+
 
 def main():
     argparser = argparse.ArgumentParser()
@@ -150,6 +148,8 @@ def main():
                            help='quietly overwrite output if already exists')
     argparser.add_argument('-p', '--parse-only', action='store_true',
                            help='do not invoke conda afterwards')
+    argparser.add_argument('-c', '--no-comment', action='store_true',
+                           help='do not add auto-generated comment to output')
     args = argparser.parse_args()
 
     metafileparser = MetaFileParser()
@@ -157,12 +157,13 @@ def main():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    meta_file_name = 'environment.yml.meta'
     if args.input is None:
+        meta_file_name = 'environment.yml.meta'
         meta_file = os.path.join(dir_path, meta_file_name)
         if not os.path.exists(meta_file):
             meta_file = os.path.join(dir_path, '..', meta_file_name)
     else:
+        meta_file_name = os.path.basename(args.input)
         meta_file = args.input
     if not os.path.exists(meta_file):
         sys.stderr.write('Error: Could not find input file')
@@ -194,6 +195,8 @@ def main():
             sys.exit(1)
 
     with open(env_file, 'w') as file_out:
+        if not args.no_comment:
+            file_out.write('# This file was auto-generated from %s\n' % meta_file_name)
         metafileparser.write_result(file_out)
 
     sys.stdout.write('Created %s successfully\n' % env_file)
