@@ -1,7 +1,7 @@
 # Conda Meta Environment Parser
 
 This tiny parser takes as input a meta-environment file, transforms it into an environment file and invokes conda on it.
-The input, usually called **environment.yml.meta**, is a standard conda environment file which can be enriched with conditions for certain lines/blocks, e.g. to only include them on specific platforms or if certains flags are given.
+The input, usually called **environment.yml.meta**, is a standard conda environment file which can be enriched with conditions for certain lines/blocks, e.g. to only include them on specific platforms or if certain flags are given.
 
 ## Example
 
@@ -73,7 +73,7 @@ If a line contains `[condition]`, the parser only outputs it if the condition is
 If a line contains `[[condition` and a later line `]]`, the parser outputs everything in between only if the condition is met (removing the two lines marking the block borders).
 Nested blocks are allowed.
 
-A condition can either be an arbitrary name, which is then interpreted as a flag, or a tripplet of an arbitrary name, some operator and a string.
+A condition can either be an arbitrary name, which is then interpreted as a flag, or a triplet of an arbitrary name, some operator and a string.
 In the latter, the name is interpreted as variable and the operator can be one of `==`, `!=`, `startswith`, `endswith`, `contains`.
 The string does not need any special terminators (e.g. no `""`).
 
@@ -86,3 +86,15 @@ Variables have to be given to the parser with `-v var_name var_value`, otherwise
 An exception are variables of the form  `var_name%value`, which are interpreted as variable `var_name` with default value `value`.
 Furthermore, the special variable `platform` is reserved and populated with the result of `sys.platform`.
 
+## Command Line Options
+
+| Short  | Long | Description |
+| --- | --- | --- |
+| -h  | --help | show usage help message |
+| -i  | --input | specify meta environment input file |
+| -o  | --output | specify environment output file |
+| -f  | --flag | set custom flag for parsing |
+| -v  | --variable | define custom variable for parsing |
+| -q  | --quiet | quietly overwrite output if already exists |
+| -p  | --parse-only | do not invoke conda afterwards |
+| -c  | --no-comment | do not add auto-generated comment to output |
