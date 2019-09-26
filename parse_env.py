@@ -3,8 +3,6 @@ import os
 import sys
 import argparse
 
-
-# TODO: block sections (recognice ill bracketing)
 # TODO: blocks more flexible (e.g. close on same line multiple of them etc..., maybe change syntax
 
 # TODO: Example Files
@@ -32,12 +30,12 @@ class MetaFileParser:
         self.file_buffer = []
         self.line_cnt = 0
         try:
-            self._parse_file(file_in, True)
+            if not self._parse_file(file_in, True, 0):
+                raise ValueError('Unexpected closing bracket')
         except ValueError as e:
-            sys.stderr.write('Error in line %d: %s\n' % (self.line_cnt, e))
-            sys.exit(1)
+            raise ValueError('Line %d: %s' % (self.line_cnt, e))
 
-    def _parse_file(self, file_in, do_print):
+    def _parse_file(self, file_in, do_print, depth):
         while True:
             try:
                 line = next(file_in)
@@ -50,14 +48,17 @@ class MetaFileParser:
                         do_print_ = self._eval_condition(condition)
                     else:
                         do_print_ = False
-                    self._parse_file(file_in, do_print_)
+                    self._parse_file(file_in, do_print_, depth+1)
                 elif dbl_bracket_end != -1:
-                    return
+                    return False
                 else:
                     if do_print:
                         self._parse_line(line)
             except StopIteration:
-                break
+                if depth == 0:
+                    return True
+                else:
+                    raise ValueError('Unexpected end of file, expected ]]')
 
     def _parse_line(self, line):
         bracket_start = line.find('[')
@@ -186,7 +187,11 @@ def main():
             input_query = 'Invalid answer, please answer yes or no ([y]/n):'
 
     with open(meta_file, 'r') as file_in:
-        metafileparser.parse_file(file_in)
+        try:
+            metafileparser.parse_file(file_in)
+        except ValueError as e:
+            sys.stderr.write('Error: %s\n' % e)
+            sys.exit(1)
 
     with open(env_file, 'w') as file_out:
         metafileparser.write_result(file_out)
