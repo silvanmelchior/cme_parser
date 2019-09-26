@@ -50,6 +50,8 @@ Thus, either directly add **create_env.py** to your project folder next to the m
 
 ```
 $ cd your_project_folder
+$ git rm environment.yml  # if exists
+$ echo "environment.yml" >> .gitignore
 $ git add environment.yml.meta
 $ git submodule add https://github.com/silvanmelchior/cme_parser
 $ git commit -m "cme parser added"
@@ -64,3 +66,23 @@ in your project folder, CME Parser will find the meta-env file and create **envi
 In general, if not specified differently with a `--output` argument, the parser will write the output into the same location as the input, removing *.meta* from the filename.
 If *.meta* is not present, it will append *_out* to the filename instead.
 In all cases, the parser will in the end invoke conda to create the environment specified by the output file. 
+
+## Syntax
+
+If a line contains `[condition]`, the parser only outputs it if the condition is met (removing the condition itself).
+If a line contains `[[condition` and a later line `]]`, the parser outputs everything in between only if the condition is met (removing the two lines marking the block borders).
+Nested blocks are allowed.
+
+A condition can either be an arbitrary name, which is then interpreted as a flag, or a tripplet of an arbitrary name, some operator and a string.
+In the latter, the name is interpreted as variable and the operator can be one of `==`, `!=`, `startswith`, `endswith`, `contains`.
+The string does not need any special terminators (e.g. no `""`).
+
+Conditions can be combined by adding `and` and `or` in between them.
+Furthermore, `not` can be added in front of a condition. The precedence order is `or` (highest), `and`, `not` (lowest), so e.g. `a and not b` is evaluated as `a and (not b)`.
+Brackets to enforce another evaluation order are currently not supported.
+
+Flags are evaluated as *false* per default, except given to the parser with `-f flag_name`.
+Variables have to be given to the parser with `-v var_name var_value`, otherwise an error is risen.
+An exception are variables of the form  `var_name%value`, which are interpreted as variable `var_name` with default value `value`.
+Furthermore, the special variable `platform` is reserved and populated with the result of `sys.platform`.
+
