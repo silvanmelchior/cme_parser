@@ -202,7 +202,11 @@ def main():
     if os.path.exists(env_file) and not args.quiet:
         input_query = 'Output file %s already exists, overwrite ([y]/n)?' % env_file
         while True:
-            answer = input(input_query)
+            try:
+                input_ = raw_input
+            except NameError:
+                input_ = input
+            answer = input_(input_query)
             if answer in ['', 'Y', 'y', 'yes', 'Yes', 'YES']:
                 break
             elif answer in ['N', 'n', 'no', 'No', 'NO']:
