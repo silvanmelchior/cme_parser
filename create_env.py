@@ -58,7 +58,7 @@ class MetaFileParser:
                 dbl_bracket_start = line.find('[[')
                 dbl_bracket_end = line.find(']]')
                 if dbl_bracket_start != -1:
-                    condition = line[dbl_bracket_start + 1:]
+                    condition = line[dbl_bracket_start + 2:]
                     if do_print:
                         do_print_ = self._eval_condition(condition)
                     else:
